@@ -19,22 +19,14 @@ public class MatchResultPublisherNackHandlerImpl implements MatchResultPublisher
 	private static final Logger log = LoggerFactory.getLogger(MatchResultPublisherNackHandlerImpl.class); 
 	
 	@Autowired
-	RedisConnectionProvider redisConnection;
+	RedisService redisService;
 	
 	@Override
 	public void handlePublishNack(String matchId) {
 		
 		String redisKey = RedisSchema.createMatchResultProducedCacheKey(matchId);
-		
-		try (Jedis jedis = redisConnection.getJedisPool().getResource()) {
-			String matchResultJson = jedis.get(redisKey);
-			
-			if(StringUtils.isNotBlank(matchResultJson)) {
-				MatchResult matchResult = JsonUtil.jsonToMatchResult(matchResultJson);
-				log.error("Handling failed match result: " + matchResult);
-			}
-			
-		}
+		MatchResult matchResult = redisService.getMatchResult(redisKey);
+		log.warn("Error during publishing MatchResult to queue: " + matchResult);
 		
 	}
 	

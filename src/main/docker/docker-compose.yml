@@ -5,12 +5,57 @@ services:
     container_name: db
     restart: always
     environment:
-      - POSTGRES_USER=match_user
-      - POSTGRES_PASSWORD=match_password
+      - POSTGRES_USER=${MATCHES_DB_USER}
+      - POSTGRES_PASSWORD=${MATCHES_DB_PASSWORD}
+
     ports:
       - '5433:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data 
+      - pgdata:/var/lib/postgresql/data
+  
+  consumer-app-1:
+    image: consumer-app
+    hostname: consumer-app
+    container_name: consumer-app-1
+    ports:
+      - '8080:8080'
+    environment:
+      - SERVER_PORT:8080
+      - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
+      - PG_PASSWORD=match_password
+      - PG_USERNAME=match_admin
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_HOST=haproxy
+      - REDIS_HOST=redis-server
+      - REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_started
+      haproxy:
+       condition: service_healthy
+
+  consumer-app-2:
+    image: consumer-app
+    hostname: consumer-app
+    container_name: consumer-app-2
+    ports:
+      - '8081:8081'
+    environment:
+      - SERVER_PORT:8081
+      - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
+      - PG_PASSWORD=match_password
+      - PG_USERNAME=match_admin
+      - RABBITMQ_PASSWORD=guest
+      - RABBITMQ_USERNAME=guest
+      - RABBITMQ_HOST=haproxy
+      - REDIS_HOST=redis-server
+      - REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_started
+      haproxy:
+       condition: service_healthy
 
   rabbitmq1:
     image: rabbitmq:4-management
@@ -24,10 +69,7 @@ services:
       - ./security/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
       - ./cluster-entrypoint.sh:/usr/local/bin/cluster-entrypoint.sh
       - D:/rabbit_data/data1:/var/lib/rabbitmq
-      - D:/rabbit_data/logs1:/var/log/rabbitmq
     entrypoint: /usr/local/bin/cluster-entrypoint.sh
-    networks:
-      - rabbitmq
 
   rabbitmq2:
     image: rabbitmq:4-management
@@ -41,10 +83,7 @@ services:
       - ./security/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
       - ./cluster-entrypoint.sh:/usr/local/bin/cluster-entrypoint.sh
       - D:/rabbit_data/data2:/var/lib/rabbitmq
-      - D:/rabbit_data/logs2:/var/log/rabbitmq
     entrypoint: /usr/local/bin/cluster-entrypoint.sh
-    networks:
-      - rabbitmq
 
   rabbitmq3:
     image: rabbitmq:4-management
@@ -58,13 +97,18 @@ services:
       - ./security/.erlang.cookie:/var/lib/rabbitmq/.erlang.cookie
       - ./cluster-entrypoint.sh:/usr/local/bin/cluster-entrypoint.sh
       - D:/rabbit_data/data3:/var/lib/rabbitmq
-      - D:/rabbit_data/logs3:/var/log/rabbitmq
     entrypoint: /usr/local/bin/cluster-entrypoint.sh
-    networks:
-      - rabbitmq
 
   haproxy:
     image: haproxy:1.7
+    hostname: haproxy
+    container_name: haproxy
+    healthcheck:
+      test: ["CMD", "ls"]
+      interval: 20s
+      timeout: 10s    # Increased timeout to allow more time for execution
+      start_period: 20s
+      retries: 3  
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
@@ -75,8 +119,6 @@ services:
       - 15672:15672
       - 5672:5672
       - 1936:1936
-    networks:
-      - rabbitmq
 
   redis:
     image: redis:8.0-M02-alpine3.20
@@ -84,9 +126,6 @@ services:
     container_name: redis-server
     ports:
     - "63079:6379"
-
-networks:
-  rabbitmq:
 
 volumes:
   pgdata:

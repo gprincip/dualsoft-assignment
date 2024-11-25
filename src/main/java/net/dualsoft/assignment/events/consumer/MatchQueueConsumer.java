@@ -32,13 +32,8 @@ public class MatchQueueConsumer implements ChannelAwareMessageListener{
         MatchResult matchResult = (MatchResult) jsonMessageConverter.fromMessage(message);
         
         try {
-        	repository.insertMatchResult(
-        			matchResult.getMatchId(),
-        			matchResult.getTeamA(),
-        			matchResult.getTeamB(),
-        			matchResult.getScoreA(),
-        			matchResult.getScoreB(),
-        			matchResult.getResultTimestamp());
+        	
+        	repository.save(matchResult);
         	
 			log.info("Match result persisted to database!", matchResult);
 			
@@ -46,8 +41,8 @@ public class MatchQueueConsumer implements ChannelAwareMessageListener{
 			
 		} catch (Exception e) {
 			try {
-				channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, true);
-				log.error("Error processing message! Message requeued!", e);
+				channel.basicNack(message.getMessageProperties().getDeliveryTag(), false, false);
+				log.error("Error processing message!", e);
 			} catch (IOException exception) {
 				log.info("Error sending basic Nack!", exception);
 			}

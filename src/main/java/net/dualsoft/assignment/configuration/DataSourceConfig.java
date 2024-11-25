@@ -9,13 +9,18 @@ import com.zaxxer.hikari.HikariDataSource;
 @Configuration
 public class DataSourceConfig {
 
-    @Bean(name = "dataSource")
+    private static final String PG_DRIVER = "org.postgresql.Driver";
+	private static final String PG_USER_PASSWORD = "PG_PASSWORD";
+	private static final String PG_USER_USERNAME = "PG_USERNAME";
+	private static final String PG_MATCHES_DB_CONNECTION_URL = "PG_MATCHES_DB_CONNECTION_URL";
+
+	@Bean(name = "dataSource")
     public HikariDataSource dataSource() {
         return DataSourceBuilder.create().type(HikariDataSource.class)
-                .url("jdbc:postgresql://localhost:5433/matches_db")
-                .username("match_admin")
-                .password("match_password")
-                .driverClassName("org.postgresql.Driver")
+                .url(System.getenv(PG_MATCHES_DB_CONNECTION_URL))
+                .username(System.getenv(PG_USER_USERNAME))
+                .password(System.getenv(PG_USER_PASSWORD))
+                .driverClassName(PG_DRIVER)
                 .build();
     }
 	

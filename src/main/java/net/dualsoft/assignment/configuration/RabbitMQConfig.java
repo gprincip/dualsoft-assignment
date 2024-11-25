@@ -5,7 +5,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.core.AcknowledgeMode;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
+import org.springframework.amqp.core.DirectExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.core.TopicExchange;
 import org.springframework.amqp.rabbit.connection.CachingConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -24,21 +26,32 @@ import net.dualsoft.assignment.service.MatchResultPublisherNackHandler;
 @Configuration
 public class RabbitMQConfig {
 
+	private static final String RABBITMQ_HOST_ENV_VARIABLE = "RABBITMQ_HOST";
+
+	private static final String RABBITMQ_PASSWORD_ENV_VARIABLE = "RABBITMQ_PASSWORD";
+
+	private static final String RABBITMQ_USERNAME_ENV_VARIABLE = "RABBITMQ_USERNAME";
+
 	private static final Logger log = LoggerFactory.getLogger(MatchQueueProducer.class);
+
+	private static final String X_DEAD_LETTER_ROUTING_KEY_ARG_VALUE = "DLQ-match-result-updates";
+	private static final String X_DEAD_LETTER_ROUTING_KEY_ARG_KEY = "x-dead-letter-routing-key";
+	private static final String X_DEAD_LETTER_EXCHANGE_ARG_VALUE = "DLX-match-result-updates";
+	private static final String X_DEAD_LETTER_EXCHANGE_ARG_KEY = "x-dead-letter-exchange";
 	
-	private static final String QUEUE_NAME = "match-result-updates";
-    private static final String EXCHANGE_NAME = "amq.topic";
-    private static final String ROUTING_KEY = "match-result-updates-routing-key";
+	private static final String MATCH_RESULT_UPDATES_QUEUE_NAME = "match-result-updates";
+    private static final String MATCH_RESULT_UPDATES_EXCHANGE_NAME = "amq.direct";
+    public static final String MATCH_RESULT_UPDATES_ROUTING_KEY = "match-result-updates-routing-key";
 
     @Autowired
-    MatchResultPublisherNackHandler matchResultPublisherNackHandler;
+    MatchResultPublisherNackHandler publisherNackHandler;
     
     @Bean
     public CachingConnectionFactory connectionFactory() {
-        CachingConnectionFactory connectionFactory = new CachingConnectionFactory("localhost");
+        CachingConnectionFactory connectionFactory = new CachingConnectionFactory(System.getenv(RABBITMQ_HOST_ENV_VARIABLE));
         connectionFactory.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.CORRELATED);
-        connectionFactory.setUsername("guest");
-        connectionFactory.setPassword("guest");
+        connectionFactory.setUsername(System.getenv(RABBITMQ_USERNAME_ENV_VARIABLE));
+        connectionFactory.setPassword(System.getenv(RABBITMQ_PASSWORD_ENV_VARIABLE));
         return connectionFactory;
     }
 
@@ -46,8 +59,8 @@ public class RabbitMQConfig {
     public RabbitTemplate rabbitTemplate(CachingConnectionFactory connectionFactory) {
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
-        rabbitTemplate.setExchange(EXCHANGE_NAME);
-        rabbitTemplate.setRoutingKey(ROUTING_KEY);
+        rabbitTemplate.setExchange(MATCH_RESULT_UPDATES_EXCHANGE_NAME);
+        rabbitTemplate.setRoutingKey(MATCH_RESULT_UPDATES_ROUTING_KEY);
         
         // Set up confirm callback for producer
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
@@ -55,7 +68,7 @@ public class RabbitMQConfig {
             	log.info("Message confirmed: " + correlationData);
             } else {            	
             	log.warn("Message not confirmed: " + cause);
-            	matchResultPublisherNackHandler.handlePublishNack(correlationData.getId());
+            	publisherNackHandler.handlePublishNack(correlationData.getId());
             }
         });
         
@@ -72,7 +85,7 @@ public class RabbitMQConfig {
                                                             MessageListenerAdapter messageListenerAdapter) {
         SimpleMessageListenerContainer container = new SimpleMessageListenerContainer();
         container.setConnectionFactory(connectionFactory);
-        container.setQueueNames(QUEUE_NAME);
+        container.setQueueNames(MATCH_RESULT_UPDATES_QUEUE_NAME);
         container.setMessageListener(messageListenerAdapter);
         
         container.setAcknowledgeMode(AcknowledgeMode.MANUAL);
@@ -89,17 +102,20 @@ public class RabbitMQConfig {
     
     @Bean
     Queue queue() {
-      return new Queue(QUEUE_NAME, true);
+        return QueueBuilder.durable(MATCH_RESULT_UPDATES_QUEUE_NAME)
+                .withArgument(X_DEAD_LETTER_EXCHANGE_ARG_KEY, X_DEAD_LETTER_EXCHANGE_ARG_VALUE)
+                .withArgument(X_DEAD_LETTER_ROUTING_KEY_ARG_KEY, X_DEAD_LETTER_ROUTING_KEY_ARG_VALUE)
+                .build();
     }
 
     @Bean
-    TopicExchange exchange() {
-      return new TopicExchange(EXCHANGE_NAME);
+    DirectExchange exchange() {
+      return new DirectExchange(MATCH_RESULT_UPDATES_EXCHANGE_NAME);
     }
 
     @Bean
-    Binding binding(Queue queue, TopicExchange exchange) {
-      return BindingBuilder.bind(queue).to(exchange).with(ROUTING_KEY);
+    Binding binding(Queue queue, DirectExchange exchange) {
+      return BindingBuilder.bind(queue).to(exchange).with(MATCH_RESULT_UPDATES_ROUTING_KEY);
     }
     
 }
