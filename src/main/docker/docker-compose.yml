@@ -15,12 +15,11 @@ services:
   
   consumer-app-1:
     image: consumer-app
-    hostname: consumer-app
+    hostname: consumer-app-1
     container_name: consumer-app-1
-    ports:
-      - '8080:8080'
+    restart: always
     environment:
-      - SERVER_PORT:8080
+      - SERVER_PORT=8081
       - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
       - PG_PASSWORD=match_password
       - PG_USERNAME=match_admin
@@ -32,17 +31,16 @@ services:
     depends_on:
       db:
         condition: service_started
-      haproxy:
-       condition: service_healthy
+#      haproxy:
+#       condition: service_healthy
 
   consumer-app-2:
     image: consumer-app
-    hostname: consumer-app
+    hostname: consumer-app-2
     container_name: consumer-app-2
-    ports:
-      - '8081:8081'
+    restart: always
     environment:
-      - SERVER_PORT:8081
+      - SERVER_PORT=8082
       - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
       - PG_PASSWORD=match_password
       - PG_USERNAME=match_admin
@@ -54,13 +52,14 @@ services:
     depends_on:
       db:
         condition: service_started
-      haproxy:
-       condition: service_healthy
+#      haproxy:
+#       condition: service_healthy
 
   rabbitmq1:
     image: rabbitmq:4-management
     hostname: rabbitmq1
     container_name: rabbitmq1
+    restart: always
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
@@ -75,6 +74,7 @@ services:
     image: rabbitmq:4-management
     hostname: rabbitmq2
     container_name: rabbitmq2
+    restart: always
     depends_on:
       - rabbitmq1
     environment:
@@ -89,6 +89,7 @@ services:
     image: rabbitmq:4-management
     hostname: rabbitmq3
     container_name: rabbitmq3
+    restart: always
     depends_on:
       - rabbitmq1
     environment:
@@ -103,10 +104,11 @@ services:
     image: haproxy:1.7
     hostname: haproxy
     container_name: haproxy
+    restart: always
     healthcheck:
       test: ["CMD", "ls"]
       interval: 20s
-      timeout: 10s    # Increased timeout to allow more time for execution
+      timeout: 10s
       start_period: 20s
       retries: 3  
     volumes:
@@ -115,13 +117,17 @@ services:
       - rabbitmq1
       - rabbitmq2
       - rabbitmq3
+      - consumer-app-1
+      - consumer-app-2
     ports:
+      - 8080:8080
       - 15672:15672
       - 5672:5672
       - 1936:1936
 
   redis:
     image: redis:8.0-M02-alpine3.20
+    restart: always
     hostname: redis-server
     container_name: redis-server
     ports:

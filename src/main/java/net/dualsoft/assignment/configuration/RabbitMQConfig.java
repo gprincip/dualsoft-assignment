@@ -26,13 +26,11 @@ import net.dualsoft.assignment.service.MatchResultPublisherNackHandler;
 @Configuration
 public class RabbitMQConfig {
 
+	private static final Logger log = LoggerFactory.getLogger(RabbitMQConfig.class);
+
 	private static final String RABBITMQ_HOST_ENV_VARIABLE = "RABBITMQ_HOST";
-
 	private static final String RABBITMQ_PASSWORD_ENV_VARIABLE = "RABBITMQ_PASSWORD";
-
 	private static final String RABBITMQ_USERNAME_ENV_VARIABLE = "RABBITMQ_USERNAME";
-
-	private static final Logger log = LoggerFactory.getLogger(MatchQueueProducer.class);
 
 	private static final String X_DEAD_LETTER_ROUTING_KEY_ARG_VALUE = "DLQ-match-result-updates";
 	private static final String X_DEAD_LETTER_ROUTING_KEY_ARG_KEY = "x-dead-letter-routing-key";
@@ -48,6 +46,12 @@ public class RabbitMQConfig {
     
     @Bean
     public CachingConnectionFactory connectionFactory() {
+    	
+    	try {
+    		log.info("Waiting for haproxy to initialize before settig up rabbitmq...");
+			Thread.sleep(15000);
+		} catch (InterruptedException e) {}
+    	
         CachingConnectionFactory connectionFactory = new CachingConnectionFactory(System.getenv(RABBITMQ_HOST_ENV_VARIABLE));
         connectionFactory.setPublisherConfirmType(CachingConnectionFactory.ConfirmType.CORRELATED);
         connectionFactory.setUsername(System.getenv(RABBITMQ_USERNAME_ENV_VARIABLE));
@@ -57,6 +61,12 @@ public class RabbitMQConfig {
 
     @Bean
     public RabbitTemplate rabbitTemplate(CachingConnectionFactory connectionFactory) {
+    	
+    	try {
+			Thread.sleep(15000);
+			log.info("Waiting for haproxy to initialize before settig up rabbitmq...");
+		} catch (InterruptedException e) {}
+    	
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         rabbitTemplate.setExchange(MATCH_RESULT_UPDATES_EXCHANGE_NAME);
