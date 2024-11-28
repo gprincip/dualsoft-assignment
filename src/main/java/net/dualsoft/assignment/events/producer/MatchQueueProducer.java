@@ -26,7 +26,7 @@ public class MatchQueueProducer {
     
     public void sendMessage(MatchResult matchResult) {
     	
-        CorrelationData correlationData = new CorrelationData(matchResult.getMatchId().toString());
+        CorrelationData correlationData = new CorrelationData(matchResult.getId().toString());
     	
         rabbitTemplate.convertAndSend(RABBITMQ_EXCHANGE, RabbitMQConfig.MATCH_RESULT_UPDATES_ROUTING_KEY, matchResult, correlationData);
         

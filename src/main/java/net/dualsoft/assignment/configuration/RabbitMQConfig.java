@@ -62,11 +62,6 @@ public class RabbitMQConfig {
     @Bean
     public RabbitTemplate rabbitTemplate(CachingConnectionFactory connectionFactory) {
     	
-    	try {
-			Thread.sleep(15000);
-			log.info("Waiting for haproxy to initialize before settig up rabbitmq...");
-		} catch (InterruptedException e) {}
-    	
         RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
         rabbitTemplate.setMessageConverter(jsonMessageConverter());
         rabbitTemplate.setExchange(MATCH_RESULT_UPDATES_EXCHANGE_NAME);
@@ -76,6 +71,9 @@ public class RabbitMQConfig {
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
             if (ack) {
             	log.info("Message confirmed: " + correlationData);
+            	
+            	publisherNackHandler.handlePublishNack(correlationData.getId());
+            	
             } else {            	
             	log.warn("Message not confirmed: " + cause);
             	publisherNackHandler.handlePublishNack(correlationData.getId());
@@ -113,6 +111,7 @@ public class RabbitMQConfig {
     @Bean
     Queue queue() {
         return QueueBuilder.durable(MATCH_RESULT_UPDATES_QUEUE_NAME)
+        		.quorum()
                 .withArgument(X_DEAD_LETTER_EXCHANGE_ARG_KEY, X_DEAD_LETTER_EXCHANGE_ARG_VALUE)
                 .withArgument(X_DEAD_LETTER_ROUTING_KEY_ARG_KEY, X_DEAD_LETTER_ROUTING_KEY_ARG_VALUE)
                 .build();

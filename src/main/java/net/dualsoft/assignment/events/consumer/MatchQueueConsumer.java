@@ -28,7 +28,7 @@ public class MatchQueueConsumer implements ChannelAwareMessageListener{
 
 	@Override
 	public void onMessage(Message message, Channel channel) throws Exception {
-		
+				
         MatchResult matchResult = (MatchResult) jsonMessageConverter.fromMessage(message);
         
         try {

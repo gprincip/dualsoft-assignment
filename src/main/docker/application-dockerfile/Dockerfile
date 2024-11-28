@@ -6,7 +6,7 @@ FROM openjdk:23
 WORKDIR /app
 
 # Copy the application JAR file
-COPY ./assignment-0.0.1-SNAPSHOT.war app.jar
+COPY ./assignment-0.0.1-SNAPSHOT.jar app.jar
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]

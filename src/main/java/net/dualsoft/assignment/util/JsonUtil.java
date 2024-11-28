@@ -19,6 +19,7 @@ public class JsonUtil {
 	
 	public static MatchResult jsonToMatchResult(String json) {
 		ObjectMapper obj = new ObjectMapper();
+		obj.registerModule(new JavaTimeModule());
 		try {
 			return obj.readValue(json, MatchResult.class);
 		} catch (IOException e) {

@@ -27,7 +27,7 @@ public class RedisServiceImpl implements RedisService {
 		try (Jedis jedis = redisConnection.getJedisPool().getResource()) {
 			
 			jedis.setex(RedisSchema.createMatchResultProducedCacheKey(
-					matchResult.getMatchId().toString()),
+					matchResult.getId().toString()),
 					PRODUCED_MATCH_RESULT_TTL,
 					JsonUtil.matchResultToJson(matchResult));
 	

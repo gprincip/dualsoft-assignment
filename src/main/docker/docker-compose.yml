@@ -101,16 +101,16 @@ services:
     entrypoint: /usr/local/bin/cluster-entrypoint.sh
 
   haproxy:
-    image: haproxy:1.7
+    image: haproxy:3.0
     hostname: haproxy
     container_name: haproxy
     restart: always
-    healthcheck:
-      test: ["CMD", "ls"]
-      interval: 20s
-      timeout: 10s
-      start_period: 20s
-      retries: 3  
+#    healthcheck:
+#      test: ["CMD", "ls"]
+#      interval: 20s
+#      timeout: 10s
+#      start_period: 20s
+#      retries: 3  
     volumes:
       - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
     depends_on:
@@ -124,7 +124,7 @@ services:
       - 15672:15672
       - 5672:5672
       - 1936:1936
-
+     
   redis:
     image: redis:8.0-M02-alpine3.20
     restart: always
