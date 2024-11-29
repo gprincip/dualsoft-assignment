@@ -71,9 +71,6 @@ public class RabbitMQConfig {
         rabbitTemplate.setConfirmCallback((correlationData, ack, cause) -> {
             if (ack) {
             	log.info("Message confirmed: " + correlationData);
-            	
-            	publisherNackHandler.handlePublishNack(correlationData.getId());
-            	
             } else {            	
             	log.warn("Message not confirmed: " + cause);
             	publisherNackHandler.handlePublishNack(correlationData.getId());

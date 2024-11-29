@@ -21,8 +21,8 @@ services:
     environment:
       - SERVER_PORT=8081
       - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
-      - PG_PASSWORD=match_password
-      - PG_USERNAME=match_admin
+      - PG_PASSWORD=${MATCHES_DB_PASSWORD}
+      - PG_USERNAME=${MATCHES_DB_USER}
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_USERNAME=guest
       - RABBITMQ_HOST=haproxy
@@ -40,8 +40,8 @@ services:
     environment:
       - SERVER_PORT=8082
       - PG_MATCHES_DB_CONNECTION_URL=jdbc:postgresql://db:5432/matches_db
-      - PG_PASSWORD=match_password
-      - PG_USERNAME=match_admin
+      - PG_PASSWORD=${MATCHES_DB_PASSWORD}
+      - PG_USERNAME=${MATCHES_DB_USER}
       - RABBITMQ_PASSWORD=guest
       - RABBITMQ_USERNAME=guest
       - RABBITMQ_HOST=haproxy
